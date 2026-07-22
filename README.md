@@ -1,2 +1,0 @@
-# INNO-NanoLab
-INNO NanoLab
