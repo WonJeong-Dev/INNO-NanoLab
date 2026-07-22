@@ -66,7 +66,8 @@ a{color:var(--primary);text-decoration:none}
 .note.okay{background:var(--ok-soft);border-color:#BBF7D0}
 
 /* ---------- controls ---------- */
-label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--sub)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap}
+label.f i{font-family:Georgia,'Times New Roman',serif}
 input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{
   background:#fff;border:1px solid var(--line2);border-radius:8px;padding:7px 9px;min-width:0}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
@@ -172,6 +173,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .synCard{width:370px;border:1.5px solid #94A3B8;border-radius:4px;background:#fff;font-size:11.5px;
   color:#111;break-inside:avoid;page-break-inside:avoid}
 .synCard .head{display:grid;grid-template-columns:130px 1fr;border-bottom:1.5px solid #94A3B8}
+.synCard .head.wide{grid-template-columns:172px 1fr}
+.synCard .span3{grid-column:1/4}
 .synCard .head .t{font-weight:800;font-size:13px;padding:6px 8px;border-right:1.5px solid #94A3B8;text-align:center}
 .synCard .head .n{font-weight:800;font-size:13px;padding:6px 8px;text-align:center}
 .synCard .cgrid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:6px 6px;padding:6px;align-items:start}
@@ -1342,7 +1345,7 @@ function shellCardHtml(lot, calc, shellComp) {
   </div></div>`;
 }
 
-/* ---- Shell-precursor solution card ---- */
+/* ---- Shell-precursor solution card (3열 가로줄 정렬 — 원본 배치) ---- */
 function shellSolutionCardHtml(title, sol, ovStore) {
   const ov = ovStore || {};
   const S = state.db.settings;
@@ -1354,35 +1357,45 @@ function shellSolutionCardHtml(title, sol, ovStore) {
       ${ced(ov, `p${i}.mg`, r ? fmtN(r.mg, 1) + " mg" : "-", "val vlast")}
     </div>`;
   };
-  const nSlots = Math.max(1, sol.rows.length);
   const heat = (key, top, bottom) => `<div><div class="steplbl">Heating condition</div>
     ${ced(ov, key + ".t", top)}${ced(ov, key + ".m", bottom, "val vlast")}</div>`;
-  let leftCells = "";
-  for (let i = 0; i < nSlots; i++) leftCells += precCell(i);
-  leftCells += `<div>${ced(ov, "tfa.n", "Na-TFA", "blk g")}
-    ${ced(ov, "tfa.mmol", fmtFix(sol.naTfaMmol, 3) + " mmol")}
-    ${ced(ov, "tfa.mg", fmtN(sol.naTfaMg, 0) + " mg", "val vlast")}
-    ${ced(ov, "tfa.note", String(cs("sol", "tfanote")).replace("{mtoh}", fmtN(S.shellSol.mtohMl, 1)), "mutx ctr")}</div>`;
+  const nSlots = Math.max(3, sol.rows.length);        // 최소 3 슬롯 고정 (빈 슬롯 "-")
+  let extraPrec = "";
+  for (let i = 3; i < nSlots; i++) extraPrec += `${precCell(i)}<div></div><div></div>`;
   return `<div class="synCard">
-  <div class="head"><div class="t">Shell-precursor sol.</div>${ced(ov, "title", esc(title), "n ced0")}</div>
+  <div class="head wide"><div class="t">Shell-precursor solution</div>${ced(ov, "title", esc(title), "n ced0")}</div>
   <div class="cgrid">
-    <div class="col">${leftCells}</div>
-    <div class="col">
-      <div>${ced(ov, "oa.n", "Oleic acid", "blk o")}${ced(ov, "oa.v", fmtN(S.shellSol.oaMl, 1) + " mL", "val vlast")}</div>
-      <div>${ced(ov, "ode.n", "1-Octadecene", "blk o")}${ced(ov, "ode.v", fmtN(S.shellSol.odeMl, 1) + " mL", "val vlast")}</div>
-      ${ced(ov, "stir", cs("sol", "stir"), "mutx ctr")}
-    </div>
-    <div class="col">
-      ${heat("h1", cs("sol", "h1t"), cs("sol", "h1m"))}
-      <div><div class="row" style="gap:3px"><div class="blk vac" style="flex:1">Vac</div><div class="blk n2" style="flex:1">N2</div></div>
+    ${precCell(0)}
+    <div>${ced(ov, "oa.n", "Oleic acid", "blk o")}${ced(ov, "oa.v", fmtN(S.shellSol.oaMl, 1) + " mL", "val vlast")}</div>
+    ${heat("h1", cs("sol", "h1t"), cs("sol", "h1m"))}
+
+    ${precCell(1)}
+    <div>${ced(ov, "ode.n", "1-Octadecene", "blk o")}${ced(ov, "ode.v", fmtN(S.shellSol.odeMl, 1) + " mL", "val vlast")}</div>
+    <div><div class="row" style="gap:3px"><div class="blk vac" style="flex:1">Vac</div><div class="blk n2" style="flex:1">N2</div></div>
       ${ced(ov, "purge", cs("sol", "purge"))}</div>
-      ${heat("h2", cs("sol", "h2t"), cs("sol", "h2m"))}
-      ${ced(ov, "addtfa", cs("sol", "add"), "val")}
-      ${heat("h3", cs("sol", "h3t"), cs("sol", "h3m"))}
-      <div><div class="blk vac">Vacuum</div></div>
-      ${heat("h4", cs("sol", "h4t"), cs("sol", "h4m"))}
-      ${ced(ov, "conc", `Ln-oleate ${fmtN(sol.lnConcM, 3)} M / Na-TFA ${fmtN(sol.tfaConcM, 3)} M<br>solution ${fmtN(sol.volMl, 0)} mL`, "mutx ctr")}
-    </div>
+
+    ${precCell(2)}
+    <div>${ced(ov, "stir", cs("sol", "stir"), "mutx ctr")}</div>
+    ${heat("h2", cs("sol", "h2t"), cs("sol", "h2m"))}
+
+    ${extraPrec}
+
+    <div>${ced(ov, "tfa.n", "Na-TFA", "blk g")}
+      ${ced(ov, "tfa.mmol", fmtFix(sol.naTfaMmol, 3) + " mmol")}
+      ${ced(ov, "tfa.mg", fmtN(sol.naTfaMg, 0) + " mg", "val vlast")}
+      ${ced(ov, "tfa.note", String(cs("sol", "tfanote")).replace("{mtoh}", fmtN(S.shellSol.mtohMl, 1)), "mutx ctr")}</div>
+    <div></div>
+    <div>${ced(ov, "addtfa", cs("sol", "add"), "val")}
+      <div class="steplbl">Heating condition</div>
+      ${ced(ov, "h3.t", cs("sol", "h3t"))}${ced(ov, "h3.m", cs("sol", "h3m"), "val vlast")}</div>
+
+    <div></div>
+    <div></div>
+    <div><div class="blk vac">Vacuum</div>
+      <div class="steplbl">Heating condition</div>
+      ${ced(ov, "h4.t", cs("sol", "h4t"))}${ced(ov, "h4.m", cs("sol", "h4m"), "val vlast")}</div>
+
+    <div class="span3">${ced(ov, "conc", `Ln-oleate ${fmtN(sol.lnConcM, 3)} M / Na-TFA ${fmtN(sol.tfaConcM, 3)} M · solution ${fmtN(sol.volMl, 0)} mL`, "mutx ctr")}</div>
   </div></div>`;
 }
 
@@ -1416,8 +1429,8 @@ function openCardModal(serial) {
     <h2>합성 카드 — ${lotLabel(lot)} <span class="hint" style="font-weight:500;font-size:12px;color:var(--muted)">칸을 클릭해 바로 수정 (자동 저장)</span></h2>
     <div id="cardEditBox">${cardForLot(lot)}</div>
     <div class="row right" style="margin-top:12px">
-      <button class="btn" id="ceReset">편집 초기화</button>
-      <button class="btn primary" id="cePrint">인쇄</button>
+      <button class="btn" id="ceReset">Reset Edits</button>
+      <button class="btn primary" id="cePrint">Print</button>
     </div>
   </div></div>`);
   document.body.appendChild(ov);
@@ -1549,7 +1562,7 @@ function renderPlannerCore(root, ctx) {
       <div class="row" style="margin-bottom:10px">
         <label class="f">Target [mmol]<input type="number" step="0.01" min="0" class="w100" id="pTgt" value="${ctx.tgtMmol}"></label>
         <label class="f">합성일 (YYMMDD)<input type="text" class="w100" id="pDate" value="${esc(ctx.date)}"></label>
-        <label class="f">Stock volume [mL]<input type="number" step="0.5" class="w100" id="pStock" value="${ctx.stockVol}"></label>
+        <label class="f"><span>Stock volume (<b><i>V</i></b>) [mL]</span><input type="number" step="0.5" class="w100" id="pStock" value="${ctx.stockVol}"></label>
         <label class="f">열처리 [min]<input type="number" step="5" min="0" class="w80" id="pHeat" value="${ctx.heat ?? ""}"></label>
         <label class="f">Group (자동)<span class="badge info" style="align-self:flex-start;margin-top:6px">${esc(autoGroup) || "–"}</span></label>
       </div>
@@ -1572,7 +1585,7 @@ function renderPlannerCore(root, ctx) {
             <td class="num"><b>${fmtN(anionRow.wprecMg, 2)}</b></td><td></td></tr>
         </tbody></table></div>
       <div class="row" style="margin-top:8px">
-        <button class="btn sm" id="pAddDop" ${ctx.dopants.filter(Boolean).length >= 5 ? "disabled" : ""}>+ Dopant 추가</button>
+        <button class="btn sm" id="pAddDop" ${ctx.dopants.filter(Boolean).length >= 5 ? "disabled" : ""}>+ Add Dopant</button>
         <span class="badge ${sumOk ? "ok" : "risk"}">Dopant 계수 합 = ${fmtN(dSum, 4)} ${sumOk ? "✓" : "≠ 1"}</span>
         <span class="badge gray">Na 과량: ${ctx.host.coeff}×${ctx.naExcess} = ${fmtN(ctx.host.coeff * ctx.naExcess, 3)} (정량 대비)</span>
       </div>
@@ -1581,7 +1594,7 @@ function renderPlannerCore(root, ctx) {
     <div class="card">
       <h3>용매 / 시약 및 조건 <span class="hint">자동 계산</span></h3>
       <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-        <div class="tile"><div class="v">${fmtN(recipe.oaMl, 1)}<span style="font-size:13px"> mL</span></div><div class="k">Oleic acid</div><div class="s">= ROUND(tgt/3.17×25×1.3)</div></div>
+        <div class="tile"><div class="v">${fmtN(recipe.oaMl, 1)}<span style="font-size:13px"> mL</span></div><div class="k">Oleic acid</div><div class="s">= ROUND(tgt × ${state.db.settings.oaPerMmol}, 1)</div></div>
         <div class="tile"><div class="v">${fmtN(recipe.odeMl, 1)}<span style="font-size:13px"> mL</span></div><div class="k">1-Octadecene</div><div class="s">= ${ctx.tgtMmol <= 1 ? 10 : 20} − OA</div></div>
         <div class="tile"><div class="v">${fmtN(recipe.oamMl, 2)}<span style="font-size:13px"> mL</span></div><div class="k">Oleyl amine</div><div class="s">= tgt × 4</div></div>
         <div class="tile"><div class="v">${recipe.mtohMl === null ? "–" : fmtN(recipe.mtohMl, 0)}<span style="font-size:13px"> mL</span></div><div class="k">MtOH (NH₄F 분산)</div><div class="s">= ROUNDUP(W<sub>NH4F</sub>×0.05)</div></div>
@@ -1589,19 +1602,19 @@ function renderPlannerCore(root, ctx) {
         <div class="tile"><div class="v">${fmtN(recipe.targetMg, 2)}<span style="font-size:13px"> mg</span></div><div class="k">Target amount</div><div class="s">${ctx.tgtMmol} mmol</div></div>
       </div>
       <div class="row">
-        <label class="f" style="flex:1">메모<input type="text" id="pMemo" value="${esc(ctx.memo)}"></label>
+        <label class="f" style="flex:1">Memo<input type="text" id="pMemo" value="${esc(ctx.memo)}"></label>
       </div>
       <div class="row right" style="margin-top:10px">
-        <button class="btn" id="pReset">초기화</button>
-        <button class="btn" id="pPrint">카드 인쇄</button>
-        <button class="btn primary" id="pSave">${ctx.editSerial !== null ? `Lot ${ctx.editSerial} 수정 저장` : `Lot ${preview.serial}(으)로 저장`}</button>
+        <button class="btn" id="pReset">Reset</button>
+        <button class="btn" id="pPrint">Print</button>
+        <button class="btn primary" id="pSave">${ctx.editSerial !== null ? `Save Changes (Lot ${ctx.editSerial})` : `Save as Lot ${preview.serial}`}</button>
       </div>
     </div>
    </div>
    <div>
     <div class="card">
-      <h3>합성 카드 미리보기 <span class="hint">${esc(lotFormula(preview))} · 칸 클릭으로 직접 수정</span>
-        <button class="btn sm" id="pCardReset" style="margin-left:auto">카드 편집 초기화</button></h3>
+      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} · 칸 클릭으로 직접 수정</span>
+        <button class="btn sm" id="pCardReset" style="margin-left:auto">Reset Edits</button></h3>
       <div style="zoom:.96" id="cardPrev">${coreCardHtml(preview, recipe)}</div>
     </div>
    </div>
@@ -1706,19 +1719,19 @@ function renderPlannerShell(root, ctx) {
       <div class="row" style="margin-bottom:8px">
         <label class="f" style="flex:1">Source lot (core stock)
           <select id="sSrc">${srcOpts}</select></label>
-        <label class="f">사용량 H [mL]<input type="number" step="0.1" class="w80" id="sVol" value="${ctx.volMl}"></label>
+        <label class="f"><span>Aliquot (<b><i>v</i></b>) [mL]</span><input type="number" step="0.1" class="w80" id="sVol" value="${ctx.volMl}"></label>
       </div>
-      ${srcLot ? `<div class="note">source ${lotLabel(srcLot)}: stock ${fmtN(srcD && srcD.D, 4)} mmol / ${fmtN(E, 1)} mL · 잔량 추정 ${fmtN(remain, 1)} mL ${remain !== null && ctx.volMl > remain ? '<b style="color:var(--risk)">— 사용량이 잔량을 초과!</b>' : ""} · 채취분 particle# I = <b>${fmtN(I, 4)} mmol</b></div>` : `<div class="note warn">source lot이 없습니다. 먼저 Core를 저장하세요.</div>`}
+      ${srcLot ? `<div class="note">source ${lotLabel(srcLot)}: stock ${fmtN(srcD && srcD.D, 4)} mmol / ${fmtN(E, 1)} mL · 잔량 추정 ${fmtN(remain, 1)} mL ${remain !== null && ctx.volMl > remain ? '<b style="color:var(--risk)">— 사용량이 잔량을 초과!</b>' : ""} · Aliquot #particle (<b><i>n</i></b>) = <b>${fmtN(I, 4)} mmol</b></div>` : `<div class="note warn">source lot이 없습니다. 먼저 Core를 저장하세요.</div>`}
       <div class="row" style="margin-top:10px">
-        <label class="f">Source radius R [nm]<input type="number" step="0.1" class="w80" id="sRad" value="${ctx.radius}"></label>
-        <label class="f">Target thickness T [nm]<input type="number" step="0.1" class="w80" id="sThk" value="${ctx.thick}"></label>
-        <label class="f">Stock volume [mL]<input type="number" step="0.5" class="w80" id="sStock" value="${ctx.stockVol}"></label>
+        <label class="f"><span>Source radius (<b><i>R</i></b>) [nm]</span><input type="number" step="0.1" class="w80" id="sRad" value="${ctx.radius}"></label>
+        <label class="f"><span>Target thickness (<b><i>T</i></b>) [nm]</span><input type="number" step="0.1" class="w80" id="sThk" value="${ctx.thick}"></label>
+        <label class="f"><span>Stock volume (<b><i>V</i></b>) [mL]</span><input type="number" step="0.5" class="w80" id="sStock" value="${ctx.stockVol}"></label>
         <label class="f">합성일<input type="text" class="w100" id="sDate" value="${esc(ctx.date)}"></label>
         <label class="f">Group (자동)<span class="badge info" style="align-self:flex-start;margin-top:6px">${esc(autoGroup) || "–"}</span></label>
       </div>
       <div class="sep"></div>
       ${dopRows}
-      <div class="row" style="margin-top:6px"><button class="btn sm" id="sAddDop">+ 원소 추가</button>
+      <div class="row" style="margin-top:6px"><button class="btn sm" id="sAddDop">+ Add Element</button>
         <span class="muted">셸 조성 기록: Na + (선택 원소) + F₄ — 계수 합 ${fmtN(ctx.dopants.filter(Boolean).reduce((a, d) => a + (d.coeff || 0), 0), 3)}</span></div>
       <div class="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
         <div class="tile"><div class="v">${fmtN(calc.volNm3, 1)}</div><div class="k">Shell volume [nm³]</div><div class="s">4/3π((R+T)³−R³)</div></div>
@@ -1732,12 +1745,12 @@ function renderPlannerShell(root, ctx) {
         <span class="badge info">${(calc.injSteps || []).map((v, i) => `#${i + 1}: ${fmtN(v, 0)}`).join("  ")}</span>
       </div>
       <div class="row" style="margin-top:6px">
-        <label class="f" style="flex:1">메모<input type="text" id="sMemo" value="${esc(ctx.memo)}"></label>
+        <label class="f" style="flex:1">Memo<input type="text" id="sMemo" value="${esc(ctx.memo)}"></label>
       </div>
       <div class="row right" style="margin-top:8px">
-        <button class="btn" id="sReset">초기화</button>
-        <button class="btn" id="sPrint">카드 인쇄</button>
-        <button class="btn primary" id="sSave" ${srcLot ? "" : "disabled"}>${ctx.editSerial !== null ? `Lot ${ctx.editSerial} 수정 저장` : `Lot ${preview.serial}(으)로 저장`}</button>
+        <button class="btn" id="sReset">Reset</button>
+        <button class="btn" id="sPrint">Print</button>
+        <button class="btn primary" id="sSave" ${srcLot ? "" : "disabled"}>${ctx.editSerial !== null ? `Save Changes (Lot ${ctx.editSerial})` : `Save as Lot ${preview.serial}`}</button>
       </div>
     </div>
     <div class="card">
@@ -1745,19 +1758,19 @@ function renderPlannerShell(root, ctx) {
       <table class="tbl"><thead><tr><th class="l">Precursor</th><th>mmol</th><th>무게</th><th></th></tr></thead>
       <tbody>${solRows}</tbody></table>
       <div class="row" style="margin-top:6px">
-        <button class="btn sm" id="solAdd">+ 전구체 추가</button>
+        <button class="btn sm" id="solAdd">+ Add Precursor</button>
         <span class="badge gray">Na-TFA ${fmtN(sol.naTfaMmol, 2)} mmol = ${fmtN(sol.naTfaMg, 0)} mg (MtOH ${fmtN(S.shellSol.mtohMl, 1)} mL 분산)</span>
-        <button class="btn sm" id="solPrint">용액 카드 인쇄</button>
+        <button class="btn sm" id="solPrint">Print</button>
       </div>
     </div>
    </div>
    <div>
     <div class="card">
-      <h3>합성 카드 미리보기 <span class="hint">${esc(lotFormula(preview))} @ ${srcLot ? esc(lotLabel(srcLot)) : "?"} · 칸 클릭으로 직접 수정</span>
-        <button class="btn sm" id="sCardReset" style="margin-left:auto">카드 편집 초기화</button></h3>
+      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} @ ${srcLot ? esc(lotLabel(srcLot)) : "?"} · 칸 클릭으로 직접 수정</span>
+        <button class="btn sm" id="sCardReset" style="margin-left:auto">Reset Edits</button></h3>
       <div style="zoom:.96" id="cardPrevS">${shellCardHtml(preview, calc, lotFormula(preview))}</div>
       <div class="sep"></div>
-      <div style="zoom:.96" id="cardPrevSol">${shellSolutionCardHtml(lotFormula(preview) + " sol.", sol, ctx.solCardEdits)}</div>
+      <div style="zoom:.96" id="cardPrevSol">${shellSolutionCardHtml(lotFormula(preview) + " solution", sol, ctx.solCardEdits)}</div>
     </div>
    </div>
   </div>`;
@@ -1787,7 +1800,7 @@ function renderPlannerShell(root, ctx) {
   root.querySelectorAll(".solMmol").forEach(el => el.onchange = e => { ctx.solPrecs[Number(el.dataset.i)].mmol = parseFloat(e.target.value) || 0; rr(); });
   root.querySelectorAll(".solDel").forEach(el => el.onclick = () => { ctx.solPrecs.splice(Number(el.dataset.i), 1); rr(); });
   $("#solAdd").onclick = () => { ctx.solPrecs.push({ name: (APP_DATA.materials.precursors.find(p => APP_DATA.roles.dopant.includes(p.elem)) || {}).name, mmol: 0 }); rr(); };
-  $("#solPrint").onclick = () => printCards([shellSolutionCardHtml(lotFormula(preview) + " precursor sol.", sol, ctx.solCardEdits)]);
+  $("#solPrint").onclick = () => printCards([shellSolutionCardHtml(lotFormula(preview) + " solution", sol, ctx.solCardEdits)]);
   $("#sReset").onclick = () => { state.plannerCtx = defaultPlannerCtx("shell"); renderView(); };
   $("#sPrint").onclick = () => printCards([shellCardHtml(preview, calc, lotFormula(preview))]);
   $("#sSave").onclick = () => {
@@ -2403,6 +2416,22 @@ function applyRefDataPayload(p) {
   if (p.materials && p.materials.precursors) APP_DATA.materials = p.materials;
   if (Array.isArray(p.idb) && p.idb.length) APP_DATA.idb = p.idb;
   if (p.constants) Object.assign(APP_DATA.constants, p.constants);
+  // 설정을 한 번도 수정하지 않은 기기(주로 배포 빌드의 중립 기본값)는
+  // 기준 DB의 파라미터를 설정에 채택 → OA/ODE 등이 0으로 남는 문제 방지
+  try {
+    if (typeof state !== "undefined" && state.db && state.db.settings &&
+        !(state.db.settings.updatedAt > 0) && p.constants) {
+      const s = state.db.settings, c = p.constants;
+      for (const k of ["naExcess", "oaPerMmol", "odeTotalSmall", "odeTotalLarge", "oamPerMmol", "mtohPerMgF"])
+        if (c[k] !== undefined) s[k] = c[k];
+      if (c.shellSol) s.shellSol = Object.assign({}, s.shellSol, c.shellSol);
+      if (c.shellSyn) s.shellSyn = Object.assign({}, s.shellSyn, c.shellSyn,
+        { inj: ((c.shellSyn.inj && c.shellSyn.inj.length ? c.shellSyn.inj : s.shellSyn.inj) || []).slice() });
+      if (c.icpPrep) s.icpPrep = Object.assign({}, s.icpPrep, c.icpPrep);
+      if (Array.isArray(c.icpStd) && c.icpStd.length) s.icpStd = c.icpStd.slice();
+      if (c.cardSteps && c.cardSteps.core) s.cardSteps = JSON.parse(JSON.stringify(c.cardSteps));
+    }
+  } catch (e) { console.warn("refdata settings adopt fail", e); }
 }
 function buildRefDataPayload() {
   const C = APP_DATA.constants;
@@ -2596,7 +2625,22 @@ const Sync = (() => {
     };
     await batchPush("lots", state.db.lots, "serial");
     await batchPush("icp", state.db.icp, "id");
-    await fb.db.collection("users").doc(fb.user.uid).collection("meta").doc("settings").set(sanitize(state.db.settings));
+    /* 설정 push 규칙: 배포 빌드의 '중립 기본값'이 실제 설정을 덮어쓰지 않도록
+       - 원격 없음: 기준 DB 내장 빌드이거나 사용자가 수정한 설정만 업로드(타임스탬프 부여)
+       - 원격 있음: 내 설정이 더 최신일 때, 또는 원격이 타임스탬프 없는 구버전 잔재이고
+         이 빌드가 기준 DB 내장(권위본)일 때만 덮어씀 */
+    {
+      const ru = setSnap.exists ? ((fsDecode(setSnap.data()) || {}).updatedAt || 0) : null;
+      const lu = state.db.settings.updatedAt || 0;
+      const shouldPush = (ru === null)
+        ? (APP_DATA.refDataEmbedded || lu > 0)
+        : (lu > ru || (APP_DATA.refDataEmbedded && ru === 0));
+      if (shouldPush) {
+        if (!state.db.settings.updatedAt) state.db.settings.updatedAt = Date.now();
+        await metaDoc("settings").set(sanitize(state.db.settings));
+        saveDb();
+      }
+    }
     state.dirty.lots.clear(); state.dirty.icp.clear(); state.dirty.settings = false;
   }
   /* strip undefined + Firestore가 금지하는 중첩 배열을 안전 구조로 인코딩 */
@@ -3037,11 +3081,11 @@ function renderIcpDb(root) {
     const vals = (r.values || []).filter(v => v[1] !== null && v[1] !== undefined);
     const unit = r.vtype === "pct" ? "%" : r.vtype === "ppm" ? "p" : r.vtype === "design" ? "" : "";
     return `<tr>
-      <td><b>${esc(r.icpLot)}</b>${r.legacy ? ` <span class="badge gray" title="구 로그북에서 이관">舊</span>` : ""}</td>
+      <td class="l"><b>${esc(r.icpLot)}</b>${r.legacy ? ` <span class="badge gray" title="구 로그북에서 이관">舊</span>` : ""}</td>
       <td style="cursor:pointer" data-lot="${r.serial}">${r.serial ?? "–"}</td>
       <td><span class="badge ${r.type === "Core" ? "core" : r.type === "Shell" ? "shell" : "gray"}">${r.type || "?"}</span></td>
       <td>${esc(r.date)}</td>
-      <td class="num">×1/${fmtN(1000 * (r.dil || 1), 0)}</td>
+      <td class="l num">×1/${fmtN(1000 * (r.dil || 1), 0)}</td>
       <td class="l">${esc((r.elements || []).join(", "))}</td>
       <td>${r.oor ? `<span class="badge risk" title="${esc(String(r.oor.val))}">Out: ${esc(r.oor.el)}</span>` : `<span class="badge ok">OK</span>`}</td>
       <td class="l" style="white-space:normal;max-width:280px">${vals.map(v => `<span class="badge info">${v[0]} ${fmtN(v[1], 2)}${unit}</span>`).join(" ") || "<span class='muted'>–</span>"}
@@ -3060,7 +3104,7 @@ function renderIcpDb(root) {
     <button class="btn sm" id="icpXlsx">엑셀 내보내기</button>
   </div></div>
   <div class="card" style="padding:6px"><div class="tblwrap" style="max-height:72vh">
-    <table class="tbl"><thead><tr><th>ICP lot</th><th>Serial</th><th>구분</th><th>Date</th><th>총 희석</th>
+    <table class="tbl"><thead><tr><th class="l">ICP lot</th><th>Serial</th><th>구분</th><th>Date</th><th class="l">총 희석</th>
     <th class="l">Elements</th><th>Range</th><th class="l">Result: Real Composition</th><th>수율</th><th class="l">파일</th><th>작업</th></tr></thead>
     <tbody>${rows}</tbody></table></div></div>`;
   $("#icpQ").oninput = e => { icpDbCtx.q = e.target.value; renderIcpDb(root); };
