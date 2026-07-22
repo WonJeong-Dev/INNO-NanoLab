@@ -136,6 +136,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .legend i.tick{width:2.5px;height:12px;border-radius:2px;vertical-align:-3px}
 .elchip.sel .badge{background:rgba(255,255,255,.28);color:#fff}
 
+/* 전체 원소주기율표 */
+.ptable{display:grid;grid-template-columns:repeat(18,1fr);grid-template-rows:repeat(7,30px) 12px 30px 30px;gap:2px;max-width:800px}
+.ptable .pel{border:1px solid var(--line2);background:#fff;border-radius:5px;font-weight:700;font-size:11.5px;color:var(--ink);padding:0;cursor:pointer;line-height:1}
+.ptable .pel:hover{background:#F1F5F9;border-color:#94A3B8}
+.ptable .pel.sel{background:var(--primary);color:#fff;border-color:var(--primary-strong)}
+.ptable .pel.miss{background:#F97316;color:#fff;border-color:#EA580C}
+.ptable .pph{display:flex;align-items:center;justify-content:center;background:#E2E8F0;color:#334155;border-radius:5px;font-size:10px;font-weight:600}
+
+/* 폼 컨트롤 높이 통일 (select/input) */
+label.f input,label.f select{height:34px;box-sizing:border-box}
+input.slim,select.slim{padding:4px 7px;border-radius:6px}
+
 /* dropzone */
 .dropzone{border:2px dashed var(--line2);border-radius:var(--r);padding:26px;text-align:center;color:var(--muted);
   background:#fff;transition:.15s}
@@ -1558,7 +1570,7 @@ function renderPlannerCore(root, ctx) {
   <div class="grid2">
    <div>
     <div class="card">
-      <h3>Core 조성 및 전구체 <span class="hint">원본 Synthesis calculator 수식 그대로</span></h3>
+      <h3>Core 합성 계획</h3>
       <div class="row" style="margin-bottom:10px">
         <label class="f">Target [mmol]<input type="number" step="0.01" min="0" class="w100" id="pTgt" value="${ctx.tgtMmol}"></label>
         <label class="f">합성일 (YYMMDD)<input type="text" class="w100" id="pDate" value="${esc(ctx.date)}"></label>
@@ -1613,7 +1625,7 @@ function renderPlannerCore(root, ctx) {
    </div>
    <div>
     <div class="card">
-      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} · 칸 클릭으로 직접 수정</span>
+      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} · 클릭하여 수정 가능</span>
         <button class="btn sm" id="pCardReset" style="margin-left:auto">Reset Edits</button></h3>
       <div style="zoom:.96" id="cardPrev">${coreCardHtml(preview, recipe)}</div>
     </div>
@@ -1766,7 +1778,7 @@ function renderPlannerShell(root, ctx) {
    </div>
    <div>
     <div class="card">
-      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} @ ${srcLot ? esc(lotLabel(srcLot)) : "?"} · 칸 클릭으로 직접 수정</span>
+      <h3>Print Preview <span class="hint">${esc(lotFormula(preview))} @ ${srcLot ? esc(lotLabel(srcLot)) : "?"} · 클릭하여 수정 가능</span>
         <button class="btn sm" id="sCardReset" style="margin-left:auto">Reset Edits</button></h3>
       <div style="zoom:.96" id="cardPrevS">${shellCardHtml(preview, calc, lotFormula(preview))}</div>
       <div class="sep"></div>
@@ -1902,13 +1914,21 @@ function renderReco(root) {
   const lots = Object.values(activeLots()).sort((a, b) => b.serial - a.serial);
   const lotOpts = `<option value="">— lot에서 불러오기 —</option>` + lots.map(l =>
     `<option value="${l.serial}" ${String(recoCtx.fromLot) === String(l.serial) ? "selected" : ""}>${lotLabel(l)} · ${esc(lotFormula(l))}</option>`).join("");
-  const allEls = [...new Set([...ICP_REF_ELS(), "Na", "K", "Li", "F"])]
-    .sort((a, b) => (APP_DATA.meta[a] || [999])[0] - (APP_DATA.meta[b] || [999])[0]);
-  const chips = allEls.map(e => {
-    const sel = recoCtx.els.includes(e);
-    const missing = sel && !refs.has(e);
-    return `<button class="elchip ${sel ? (missing ? "miss" : "sel") : ""}" data-el="${e}" title="${missing ? "DB에 기준 파장이 없는 원소 (계산에서 제외됨)" : ""}">${e}</button>`;
-  }).join(" ");
+  /* 전체 원소주기율표 (원본 GUI 좌표: 란탄/악티늄족은 하단 별도 행) */
+  const ptCells = [];
+  for (const [sym, m] of Object.entries(APP_DATA.meta)) {
+    const z = m[0], name = m[1], row = m[2], col = m[3];
+    const gr = row >= 8 ? row + 1 : row;             // 8,9행(La/Ac계열)은 한 칸 띄워 9,10행에
+    const sel = recoCtx.els.includes(sym);
+    const missing = sel && !refs.has(sym);
+    const tip = `${z}. ${name}` + (refs.has(sym) ? "" : " · 간섭 DB에 기준 피크 없음(계산에서 제외됨)");
+    ptCells.push(`<button class="pel ${sel ? (missing ? "miss" : "sel") : ""}" data-el="${sym}" title="${esc(tip)}" style="grid-row:${gr};grid-column:${col}">${sym}</button>`);
+  }
+  ptCells.push(`<div class="pph" style="grid-row:6;grid-column:3">La–Lu</div>`);
+  ptCells.push(`<div class="pph" style="grid-row:7;grid-column:3">Ac–Lr</div>`);
+  ptCells.push(`<div class="pph" style="grid-row:9;grid-column:1/3">Lanthanides</div>`);
+  ptCells.push(`<div class="pph" style="grid-row:10;grid-column:1/3">Actinides</div>`);
+  const chips = `<div class="ptable">${ptCells.join("")}</div>`;
 
   let resultHtml = "";
   if (recoCtx.lastResults) {
@@ -1951,12 +1971,12 @@ function renderReco(root) {
       <button class="btn sm" id="recoParse">파싱하여 추가</button>
       <button class="btn sm" id="recoClear">모두 해제</button>
     </div>
-    <div style="line-height:2.1">${chips}</div>
+    ${chips}
     <div class="sep"></div>
     <div class="row">
       <label class="f">추천 개수<select id="recoMax" class="slim">${[3, 4, 5].map(n => `<option ${S.reco.max === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <label class="f">최소 기준 강도<input type="number" class="slim w100" id="recoMinInt" value="${S.reco.minRefInt}" step="1000"></label>
-      <label class="f">Gaussian 가중<select id="recoGauss" class="slim"><option value="off" ${!S.reco.gauss ? "selected" : ""}>끔 (기본)</option><option value="on" ${S.reco.gauss ? "selected" : ""}>켬</option></select></label>
+      <label class="f">Gaussian 가중<select id="recoGauss" class="slim"><option value="off" ${!S.reco.gauss ? "selected" : ""}>Off</option><option value="on" ${S.reco.gauss ? "selected" : ""}>On</option></select></label>
       <label class="f">σ [nm]<input type="number" class="slim w80" id="recoSigma" value="${S.reco.sigma}" step="0.01" min="0.01" max="1"></label>
       <button class="btn primary" id="recoRun" style="margin-left:auto">추천 실행</button>
     </div>
@@ -3183,7 +3203,7 @@ function renderSettings(root) {
     </div>
   </div>
   <div>
-    <div class="card"><h3>Parameter Setting <span class="hint">그룹별 정리 — 바꾸면 이후 계산에 적용</span></h3>
+    <div class="card"><h3>Parameter Setting</h3>
       <table class="tbl"><tbody>
         <tr><td class="l" style="width:110px"><b>Core Synthesis</b></td><td class="l">
           <span class="row" style="gap:8px">
@@ -3210,7 +3230,7 @@ function renderSettings(root) {
       </tbody></table>
       <div class="row right" style="margin-top:8px"><button class="btn primary sm" id="cSave">Save</button></div>
     </div>
-    <div class="card"><h3>물질 데이터베이스 <span class="hint">전구체 ${APP_DATA.materials.precursors.length}종</span></h3>
+    <div class="card"><h3>Precursor Database</h3>
       <div class="tblwrap" style="max-height:300px"><table class="tbl"><thead><tr>
         <th>El</th><th class="l">Precursor</th><th class="l">Formula</th><th>n/prec</th><th>M.W.</th><th></th></tr></thead>
         <tbody>${APP_DATA.materials.precursors.map((p, i) => `<tr>
@@ -3221,7 +3241,7 @@ function renderSettings(root) {
       <div class="row" style="margin-top:8px"><button class="btn sm" id="pAdd">+ Add Precursor</button>
         <span class="muted">추가/수정분은 이 브라우저 DB에 저장됩니다</span></div>
     </div>
-    <div class="card"><h3>정보 · 라이선스</h3>
+    <div class="card"><h3>Information · License</h3>
       <div class="note">
         <b>INNO NanoLab — Synthesis &amp; ICP</b> · © 2026 WonJeong Yu · <b>All Rights Reserved</b> (비공개 · 내부 연구용)<br>
         본 프로그램과 내장된 연구 데이터는 저작권자의 사전 허가 없이 복제·배포·공개할 수 없습니다.<br>
